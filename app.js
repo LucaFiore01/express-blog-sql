@@ -1,11 +1,21 @@
 const express = require('express');
-require('./data/db');
+const connection = require('./data/db');
 
 const app = express();
 const port = 3000;
 
 app.get('/', (req, res) => {
-  res.send('Server attivo');
+  const sql = 'SELECT * FROM posts';
+
+  connection.query(sql, (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        error: 'Errore nel recupero dei post dal database'
+      });
+    }
+
+    res.json(results);
+  });
 });
 
 app.listen(port, () => {
