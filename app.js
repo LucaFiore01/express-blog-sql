@@ -4,13 +4,37 @@ const connection = require('./data/db');
 const app = express();
 const port = 3000;
 
+function runQueryWithTimeout(sql, params, callback, timeoutMs = 5000) {
+  let isHandled = false;
+
+  const timer = setTimeout(() => {
+    if (isHandled) {
+      return;
+    }
+
+    isHandled = true;
+    callback(new Error('Timeout query database'));
+  }, timeoutMs);
+
+  connection.query(sql, params, (err, results) => {
+    if (isHandled) {
+      return;
+    }
+
+    isHandled = true;
+    clearTimeout(timer);
+    callback(err, results);
+  });
+}
+
 app.get('/', (req, res) => {
   const sql = 'SELECT * FROM posts';
 
-  connection.query(sql, (err, results) => {
+  runQueryWithTimeout(sql, [], (err, results) => {
     if (err) {
       return res.status(500).json({
-        error: 'Errore nel recupero dei post dal database'
+        error: 'Errore nel recupero dei post dal database',
+        details: err.message
       });
     }
 
@@ -29,10 +53,11 @@ app.get('/posts/:id', (req, res) => {
 
   const sql = 'SELECT * FROM posts WHERE id = ?';
 
-  connection.query(sql, [postId], (err, results) => {
+  runQueryWithTimeout(sql, [postId], (err, results) => {
     if (err) {
       return res.status(500).json({
-        error: 'Errore nel recupero del post dal database'
+        error: 'Errore nel recupero del post dal database',
+        details: err.message
       });
     }
 
@@ -57,10 +82,11 @@ app.delete('/posts/:id', (req, res) => {
 
   const sql = 'DELETE FROM posts WHERE id = ?';
 
-  connection.query(sql, [postId], (err, result) => {
+  runQueryWithTimeout(sql, [postId], (err, result) => {
     if (err) {
       return res.status(500).json({
-        error: "Errore nell'eliminazione del post"
+        error: "Errore nell'eliminazione del post",
+        details: err.message
       });
     }
 
