@@ -18,6 +18,34 @@ app.get('/', (req, res) => {
   });
 });
 
+app.get('/posts/:id', (req, res) => {
+  const postId = Number(req.params.id);
+
+  if (!Number.isInteger(postId) || postId <= 0) {
+    return res.status(400).json({
+      error: 'ID non valido'
+    });
+  }
+
+  const sql = 'SELECT * FROM posts WHERE id = ?';
+
+  connection.query(sql, [postId], (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        error: 'Errore nel recupero del post dal database'
+      });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        error: 'Post non trovato'
+      });
+    }
+
+    res.json(results[0]);
+  });
+});
+
 app.delete('/posts/:id', (req, res) => {
   const postId = Number(req.params.id);
 
@@ -42,9 +70,7 @@ app.delete('/posts/:id', (req, res) => {
       });
     }
 
-    res.json({
-      message: 'Post eliminato con successo'
-    });
+    res.sendStatus(204);
   });
 });
 
